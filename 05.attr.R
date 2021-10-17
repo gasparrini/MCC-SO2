@@ -35,7 +35,7 @@ attrlist <- foreach(data=dlist, i=seq(dlist), .packages=pack) %dopar% {
   # INDICATOR FOR SO2 ABOVE 20
   ind20 <- data$so2>=20
 
-  # COMPUTE THE EXCESS DEATHS USING THE CITY-SPECIFIC BLUPS
+  # COMPUTE THE EXCESS DEATHS USING THE COUNTRY-SPECIFIC BLUPS
   anday <- (1-exp(-oneso2%*%blupcountry[i, "blup"]))*y
   an <- c(sum(anday, na.rm=T), sum(anday[ind20], na.rm=T))
   
@@ -126,7 +126,7 @@ anall <- merge(anall, temp[, list("excdeath_low"=quantile(excdeath, 0.025),
 # SAVE
 
 # CLEAN
-rm(ansim)
+#rm(ansim)
 
 # SAVE THE WORKSPACE
 #save.image("temp/temp.RData")

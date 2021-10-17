@@ -54,9 +54,5 @@ nlmeta <- mixmeta(nlcoefall, nlvcovall, random=~1|country/city, data=cities,
   control=list(showiter=T, igls.inititer=10))
 #summary(meta)
 
-# COMPUTE THE PROPORTION OF STUDIES BY EXPOSURE RANGE
-proprange <- rowSums(sapply(dlist, function(x) 
-  0:200 > min(x$so2, na.rm=T) & 0:200 < max(x$so2, na.rm=T))) / length(dlist)*100
-
 # SAVE THE WORKSPACE
 #save.image("temp/temp.RData")
