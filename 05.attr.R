@@ -1,5 +1,5 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: PRELIMINARY SO2 ANALYSIS 
+# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
 ################################################################################
 
 ################################################################################
@@ -32,12 +32,12 @@ attrlist <- foreach(data=dlist, i=seq(dlist), .packages=pack) %dopar% {
   y <- if(indnonext[i]) as.integer(data$nonext) else data[[out]]
   y <- rowMeans(as.matrix(Lag(y, -lagso2:0)))
   
-  # INDICATOR FOR SO2 ABOVE 20
-  ind20 <- data$so2>=20
+  # INDICATOR FOR SO2 ABOVE 40
+  ind40 <- data$so2>=40
 
   # COMPUTE THE EXCESS DEATHS USING THE COUNTRY-SPECIFIC BLUPS
   anday <- (1-exp(-oneso2%*%blupcountry[i, "blup"]))*y
-  an <- c(sum(anday, na.rm=T), sum(anday[ind20], na.rm=T))
+  an <- c(sum(anday, na.rm=T), sum(anday[ind40], na.rm=T))
   
   # SAMPLE THE COEF OF THE META-REGRESSION
   set.seed(13041975+i)
@@ -46,10 +46,10 @@ attrlist <- foreach(data=dlist, i=seq(dlist), .packages=pack) %dopar% {
   # SIMULATED DISTRIBUTION OF EXCESS DEATHS
   ansim <- sapply(coefsim, function(b) {
     anday <- (1-exp(-oneso2%*%b))*y
-    c(sum(anday, na.rm=T), sum(anday[ind20], na.rm=T))
+    c(sum(anday, na.rm=T), sum(anday[ind40], na.rm=T))
   })
   ansim <- cbind(an, ansim)
-  dimnames(ansim) <- list(c("tot","above20"), c("est", paste0("sim", seq(nsim))))
+  dimnames(ansim) <- list(c("tot","above40"), c("est", paste0("sim", seq(nsim))))
 
   # TOTAL DEATHS AND DAYS (ACCOUNTING FOR MISSING)
   ndeath <- sum(y[!is.na(anday)])

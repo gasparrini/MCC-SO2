@@ -1,5 +1,5 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: PRELIMINARY SO2 ANALYSIS 
+# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
 ################################################################################
 
 ################################################################################
@@ -14,9 +14,12 @@
 #   basis
 # }
 
-# SET PARAMETERS FOR LINEAR SPLINE
-linknots <- c(20, 50, 100, 150)
-nlargvarso2 <- list(fun="bs", knots=linknots, degree=1)
+# SET PARAMETERS FOR THE EXPOSURE-RESPONSE
+# linknots <- c(20, 50, 100, 150)
+# nlargvarso2 <- list(fun="bs", knots=linknots, degree=2)
+# dfso2 <- 6
+nlargvarso2 <- list(fun="poly", degree=5, scale=100)
+dfso2 <- 5
 
 # LOOP ACROSS CITIES (SEE 03.firststage.R)
 cl <- parallel::makeCluster(max(1,ncores-2))
@@ -33,13 +36,14 @@ nlstage1list <- foreach(data=dlist, i=seq(dlist), .packages=pack) %dopar% {
     arglag=arglagtmean)
   spltime <- ns(data$date, df=round(dftime*nrow(data)/365.25))
   
-  # DEFINE A LINEAR SPLINE FOR MOVING AVERAGE
+  # DEFINE A SPLINE FUNCTION FOR MOVING AVERAGE
   # NB: TO AVOID NEED OF REDUCING DLNMS IN THE PRESENCE OF MISSING COEF
   cbso2 <- do.call(onebasis, c(list(x=runMean(data$so2, 0:lagso2)), nlargvarso2))
 
   # FIT THE MODEL AND COLLECT PARS MANUALLY
   mod <- glm(formula(deparse(fmod)), data, family=quasipoisson)
-  list(coefall=coef(mod)[2:6], vcovall=vcov(mod)[2:6,2:6])
+  ind <- seq(dfso2)+1
+  list(coefall=coef(mod)[ind], vcovall=vcov(mod)[ind,ind])
 }
 names(nlstage1list) <- cities$city
 stopCluster(cl)
@@ -52,7 +56,7 @@ nlvcovall <- lapply(nlstage1list, "[[", "vcovall")
 # NB: REDUCE (R)IGLS ITERATIONS TO SPEED UP
 nlmeta <- mixmeta(nlcoefall, nlvcovall, random=~1|country/city, data=cities, 
   control=list(showiter=T, igls.inititer=10))
-#summary(meta)
+#summary(nlmeta)
 
 # SAVE THE WORKSPACE
 #save.image("temp/temp.RData")

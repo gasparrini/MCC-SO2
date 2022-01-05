@@ -1,5 +1,5 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: PRELIMINARY SO2 ANALYSIS 
+# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
 ################################################################################
 
 ################################################################################
@@ -23,11 +23,11 @@ fcntry <- factor(cities$countryname, levels=unique(cities$countryname))
 avgso2 <- sapply(dlist, function(x) mean(x$so2, na.rm=T))
 
 # DAYS ABOVE WHO LIMIT
-so2day <- sapply(dlist, function(x) length(na.omit(x$so2)>20))
-so2dayhigh <- sapply(dlist, function(x) sum(na.omit(x$so2)>20))
+so2day <- sapply(dlist, function(x) length(na.omit(x$so2)))
+so2dayhigh <- sapply(dlist, function(x) sum(na.omit(x$so2)>40))
 
 # EXTRACT STATS
-tabdescr <- data.frame(country = levels(fcntry),
+tabcntrydescr <- data.frame(country = levels(fcntry),
   ncity = tapply(cities$city, fcntry, function(x) length(unique(x))),
   minperiod = tapply(sapply(dlist, function(x) min(year(x$date))), fcntry, min),
   maxperiod = tapply(sapply(dlist, function(x) max(year(x$date))), fcntry, max),
@@ -40,40 +40,31 @@ tabdescr <- data.frame(country = levels(fcntry),
 )
 
 # ADD TOT
-tabdescr <- rbind(tabdescr, data.frame(
+tabcntrydescr <- rbind(tabcntrydescr, data.frame(
   country = paste(length(levels(fcntry)), "MCC countries"),
-  ncity = sum(tabdescr$ncity),
-  minperiod = min(tabdescr$minperiod), maxperiod = max(tabdescr$maxperiod),
-  nday = sum(tabdescr$nday), ndeath = sum(tabdescr$ndeath), 
+  ncity = sum(tabcntrydescr$ncity),
+  minperiod = min(tabcntrydescr$minperiod), maxperiod = max(tabcntrydescr$maxperiod),
+  nday = sum(tabcntrydescr$nday), ndeath = sum(tabcntrydescr$ndeath), 
   medso2 = median(avgso2), minso2 = min(avgso2), maxso2 = max(avgso2),
   ndaywho = sum(so2dayhigh)/sum(so2day)*100
 ))
 
 # FORMAT
-tabdescr <- cbind(tabdescr[1:2], 
-  period = paste(tabdescr$minperiod, tabdescr$maxperiod, sep="-"),
-  nday = formatC(tabdescr$nday, format="f", big.mark=",", digits=0),
-  ndeath = formatC(tabdescr$ndeath, format="f", big.mark=",", digits=0),
-  so2 = paste0(formatC(tabdescr$medso2, format="f", big.mark=",", digits=1),
-    " (", formatC(tabdescr$minso2, format="f", big.mark=",", digits=1), "-",
-    formatC(tabdescr$maxso2, format="f", big.mark=",", digits=1), ")"),
-  ndaywho = paste0(formatC(tabdescr$ndaywho, format="f", digits=1), "%")
+tabcntrydescr <- cbind(tabcntrydescr[1:2], 
+  period = paste(tabcntrydescr$minperiod, tabcntrydescr$maxperiod, sep="-"),
+  nday = formatC(tabcntrydescr$nday, format="f", big.mark=",", digits=0),
+  ndeath = formatC(tabcntrydescr$ndeath, format="f", big.mark=",", digits=0),
+  so2 = paste0(formatC(tabcntrydescr$medso2, format="f", big.mark=",", digits=1),
+    " (", formatC(tabcntrydescr$minso2, format="f", big.mark=",", digits=1), "-",
+    formatC(tabcntrydescr$maxso2, format="f", big.mark=",", digits=1), ")"),
+  ndaywho = paste0(formatC(tabcntrydescr$ndaywho, format="f", digits=1), "%")
 )
 
 # SAVE
-write.csv(tabdescr, row.names=F, file="tables/tabdescr.csv")
+write.csv(tabcntrydescr, row.names=F, file="tables/tabcntrydescr.csv")
 
 ################################################################################
-# EXCESS MORTALITY BY MAJOR CITIES AND TOTAL
-
-# SELECT CITIES (HIGHEST DAILY DEATH COUNTS)
-daydeath <- with(subset(ancity, range=="tot"), ndeath/nday)
-indcity <- cities$city %in% tapply(seq(daydeath), cities$country, function(x) 
-  cities$city[x[which.max(daydeath[x])]])
-
-# LABELS
-mainlab <- paste0(cities$cityname[indcity], " (", cities$countryname[indcity],
-  ")")
+# EXCESS MORTALITY BY CITY
 
 # FORMAT EXCESS DEATHS AND FRACTION
 af <- funformat(ancity$excdeath/ancity$ndeath*100, 
@@ -90,25 +81,43 @@ ansum <- funformat(anall$excdeath/anall$nday*365.25*anall$ncity,
   anall$excdeath_high/anall$nday*365.25*anall$ncity)
 
 # PUT TOGETHER WITH SO2 LEVELS
-exctab <- data.frame(cities=mainlab, 
-  so2 = formatC(avgso2[indcity], format="f", digits=1),
-  ndaywho = paste0(formatC((so2dayhigh/so2day*100)[indcity], format="f",
-    digits=1), "%"),
-  aftot = af[ancity$range=="tot"][indcity], 
-  antot = an[ancity$range=="tot"][indcity],
-  af20 = af[ancity$range=="above20"][indcity], 
-  an20 = an[ancity$range=="above20"][indcity]
+tabcityexc <- data.frame(city=cities$cityname, country=cities$countryname,
+  so2 = formatC(avgso2, format="f", digits=1),
+  ndaywho = paste0(formatC((so2dayhigh/so2day*100), format="f", digits=1), "%"),
+  aftot = af[ancity$range=="tot"], 
+  antot = an[ancity$range=="tot"],
+  af40 = af[ancity$range=="above40"], 
+  an40 = an[ancity$range=="above40"]
 )
 
+# SAVE
+write.csv(tabcityexc, row.names=F, file="tables/tabcityexc.csv")
+
+################################################################################
+# EXCESS MORTALITY BY MAJOR CITIES AND TOTAL
+
+# SELECT CITIES (HIGHEST DAILY DEATH COUNTS)
+daydeath <- with(subset(ancity, range=="tot"), ndeath/nday)
+indmain <- cities$city %in% tapply(seq(daydeath), cities$country, function(x) 
+  cities$city[x[which.max(daydeath[x])]])
+
+# LABELS
+citycntrylab <- paste0(cities$cityname, " (", cities$countryname, ")")
+
+# SELECT CITIES
+tabmainexc <- cbind(city=citycntrylab[indmain], tabcityexc[indmain, -(1:2)])
+
+
+
 # ADD TOTAL
-exctab <- rbind(exctab, data.frame(cities=paste(nrow(cities), "MCC cities"),
+tabmainexc <- rbind(tabmainexc, data.frame(city=paste(nrow(cities), "MCC cities"),
   so2=formatC(mean(avgso2), format="f", digits=1),
   ndaywho=paste0(formatC(sum(so2dayhigh)/sum(so2day)*100, format="f",
     digits=1), "%"),
-  aftot=afsum[2], antot=ansum[2], af20=afsum[1], an20=ansum[1]))
+  aftot=afsum[2], antot=ansum[2], af40=afsum[1], an40=ansum[1]))
 
 # SAVE
-write.csv(exctab, row.names=F, file="tables/exctab.csv")
+write.csv(tabmainexc, row.names=F, file="tables/tabmainexc.csv")
 
 ################################################################################
 # TABLE OF SENSITIVITY ANALYSIS WITH CO-POLLUTANTS

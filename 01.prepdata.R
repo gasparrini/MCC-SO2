@@ -1,5 +1,5 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: PRELIMINARY SO2 ANALYSIS 
+# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
 ################################################################################
 
 ################################################################################
@@ -67,12 +67,24 @@ cities <- cities[-which(cities$city=="tngs.chi9615"),]
 dlist[cities$city=="nnjn.chi9615"] <- NULL
 cities <- cities[-which(cities$city=="nnjn.chi9615"),]
 
+################################################################################
 # REORDER
+
+# REORDER FIRST BY COUNTRY AND CITY
 ord <- order(cities$country, cities$city)
 cities <- cities[ord,]
-dlist <- dlist[cities$city]
 
-table(cities$countryname)
+# FACTOR FOR REGION WITH PROPER ORDER
+levreg <- c("North America", "Central America", "South America", "North Europe",
+  "Central Europe", "South Europe", "Middle-East Asia", "East Asia", 
+  "South-East Asia", "Australia")
+cities$region <- factor(cities$region, levels=levreg)
+
+# REORDER BY REGION 
+cities <- cities[order(cities$region),]
+
+# REORDER THE LIST OF DATASETS
+dlist <- dlist[cities$city]
 
 ################################################################################
 # REMOVE OBJECTS AND SAVE
