@@ -10,10 +10,10 @@
 # MAP OF SO2 AVERAGE CONCENTRATIONS
 
 # WORLD MAP, GRID, PROJECTION
-wld <- ne_countries(scale = 50, returnclass = "sf")
-grid <- st_graticule(lon=seq(-180, 180, length.out=7),
-  lat=seq(-90, 90, length.out=5), ndiscr=1000, crs=4326, margin=0.00001) 
-prj <- "+proj=robin +lon_0=0 +x_0=0 +y_0=0 +datum=WGS84 +units=m +no_defs"
+wld <- ne_countries(scale = 50, returnclass = "sf") |>
+  subset(subregion != "Antarctica")
+grid <- st_graticule() 
+prj <- "ESRI:54030"
 
 # DEFINE ANNUAL SO2 AVERAGES AND CUT-OFFS
 meanso2 <- round(sapply(dlist, function(x) mean(x$so2, na.rm=T)))
@@ -22,15 +22,15 @@ cutso2 <- quantile(meanso2, percut/100)
 
 # MAP
 xlab <- expression(paste("Annual average of ",SO[2]," (",mu,"gr/",m^3,")"))
-cbind(cities, meanso2) %>%
-    st_as_sf(coords=c("long", "lat"), crs=4326) %>%
+cbind(cities, meanso2) |>
+    st_as_sf(coords=c("long", "lat"), crs=4326) |>
   ggplot() +
   geom_sf(data=wld, fill=grey(0.88), colour = "white", size = .2) +
   geom_sf(aes(fill=cut(meanso2, cutso2, inc=T)), size=3, stroke=.3,
     shape=21, alpha=.7, colour=alpha("white", .5)) +
-  geom_sf(data=grid, size=.3, linetype="dashed", colour="grey50", alpha=0.5) +
-  scale_fill_brewer(palette="Blues", name=xlab) +
-  guides(fill=guide_colorsteps(barwidth=18, barheight=0.6, title.position="top",
+  geom_sf(data=grid, size=.1, linetype="dashed", colour="grey50", alpha=0.4) +
+  scale_fill_brewer(palette="Blues", name=xlab, labels=round) +
+  guides(fill=guide_colorsteps(barwidth=18, barheight=0.45, title.position="top",
     title.hjust=0.5)) + 
   coord_sf(xlim=c(-170,180), ylim=c(-55,80), crs=prj, default_crs=4326) +
   theme_void() +   theme(legend.position="bottom")
@@ -45,15 +45,15 @@ af <- (ancity$excdeath/ancity$ndeath*100)[ancity$range=="tot"]
 cutaf <- round(quantile(af, percut/100), 2)
 
 # MAP
-cbind(cities, af) %>%
-    st_as_sf(coords=c("long", "lat"), crs=4326) %>%
+cbind(cities, af) |>
+    st_as_sf(coords=c("long", "lat"), crs=4326) |>
   ggplot() +
   geom_sf(data=wld, fill=grey(0.88), colour = "white", size = .2) +
   geom_sf(aes(fill=cut(af, cutaf, inc=T)), size=3, stroke=.3,
     shape=21, alpha=.7, colour=alpha("white", .5)) +
-  geom_sf(data=grid, size=.3, linetype="dashed", colour="grey50", alpha=0.5) +
+  geom_sf(data=grid, size=.1, linetype="dashed", colour="grey50", alpha=0.4) +
   scale_fill_brewer(palette="YlOrBr", name="Excess mortality fraction (%)") +
-  guides(fill=guide_colorsteps(barwidth=18, barheight=0.6, title.position="top",
+  guides(fill=guide_colorsteps(barwidth=18, barheight=0.45, title.position="top",
     title.hjust=0.5)) + 
   coord_sf(xlim=c(-170,180), ylim=c(-55,80), crs=prj, default_crs=4326) +
   theme_void() +   theme(legend.position="bottom")
@@ -85,6 +85,30 @@ points(exp(effcountry[yn,1]*10), 1, col=muted("lightskyblue"), pch=23, bg=2,
   cex=1.4)
 
 dev.print(pdf, "figures/rrcountry.pdf", height=9, width=6.5)
+
+
+# GGPLOT VERSION
+as.matrix(unique(cities[c("countryname","region")])) |>
+  rbind(c("Pooled","")) |>
+  cbind(as.data.frame(exp(effcountry[,c(1,3,4)]*10))) |>
+  mutate(countryname=factor(countryname, levels=rev(unique(countryname))),
+    region=factor(region, levels=unique(region)),
+    shape=rep(c(19,18),c(yn-1,1))) |>
+  ggplot(aes(blup, countryname)) +
+  geom_vline(xintercept=1, size=.4) +
+  geom_vline(xintercept=exp(effcountry[yn,1]*10), size=.4, linetype="dotted") +
+  geom_errorbar(aes(xmin=pi.lb, xmax=pi.ub), colour="lightskyblue", width=0.4,
+    show.legend=FALSE) +
+  geom_point(size=2, aes(shape=shape), colour=muted("lightskyblue"),
+    show.legend=FALSE) + scale_shape_identity() +
+  #scale_y_discrete(labels = function(x) str_remove(x, "Pooled")) +
+  facet_grid(region~., space = "free_y", scales = "free_y") +
+  labs(y = "", x = "RR") +
+  theme_bw() +
+  theme(strip.text.y=element_text(angle=0), panel.grid.minor=element_blank(),
+    panel.grid.major.y=element_blank())
+
+ggsave("figures/rrcountry2.pdf", height = 8, width = 6.76, unit = "in")
 
 ################################################################################
 # EXPOSURE-RESPONSE AND LAG-RESPONSE

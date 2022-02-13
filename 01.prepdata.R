@@ -86,6 +86,9 @@ cities <- cities[order(cities$region),]
 # REORDER THE LIST OF DATASETS
 dlist <- dlist[cities$city]
 
+# CHANGE NAME OF PUERTO RICO
+cities$countryname[cities$countryname=="Puertorico"] <- "Puerto Rico"
+
 ################################################################################
 # REMOVE OBJECTS AND SAVE
 
