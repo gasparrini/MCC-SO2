@@ -38,12 +38,17 @@ nlstage1list <- foreach(data=dlist, i=seq(dlist), .packages=pack) %dopar% {
   
   # DEFINE A SPLINE FUNCTION FOR MOVING AVERAGE
   # NB: TO AVOID NEED OF REDUCING DLNMS IN THE PRESENCE OF MISSING COEF
-  cbso2 <- do.call(onebasis, c(list(x=runMean(data$so2, 0:lagso2)), nlargvarso2))
+  bso2 <- do.call(onebasis, c(list(x=runMean(data$so2, 0:3)), nlargvarso2))
 
-  # FIT THE MODEL AND COLLECT PARS MANUALLY
-  mod <- glm(formula(deparse(fmod)), data, family=quasipoisson)
+  # FIT THE MODEL
+  mod <- glm(y ~ bso2 + cbtmean + dow + spltime, data, family=quasipoisson)
+  
+  # EXTRACT THE ESTIMATES
   ind <- seq(dfso2)+1
-  list(coefall=coef(mod)[ind], vcovall=vcov(mod)[ind,ind])
+  coefall <- coef(mod)[ind]
+  vcovall <- vcov(mod)[ind,ind]
+  
+  list(coefall=coefall, vcovall=vcovall)
 }
 names(nlstage1list) <- cities$city
 stopCluster(cl)
@@ -57,6 +62,3 @@ nlvcovall <- lapply(nlstage1list, "[[", "vcovall")
 nlmeta <- mixmeta(nlcoefall, nlvcovall, random=~1|country/city, data=cities, 
   control=list(showiter=T, igls.inititer=10))
 #summary(nlmeta)
-
-# SAVE THE WORKSPACE
-#save.image("temp/temp.RData")

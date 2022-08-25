@@ -7,8 +7,8 @@
 ################################################################################
 
 # EXTRACT ESTIMATES FROM FIRST-STAGE MODELS
-coefall <- drop(t(sapply(stage1list, "[[", "coefall")))
-vcovall <- lapply(stage1list, "[[", "vcovall")
+coefall <- unlist(lapply(stage1list, "[[", "coefall"))
+vcovall <- unlist(lapply(stage1list, "[[", "vcovall"))
 
 # PERFORM THE META-ANALYSIS
 meta <- mixmeta(coefall, vcovall, random=~1|country/city, data=cities, 

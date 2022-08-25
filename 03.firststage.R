@@ -40,18 +40,17 @@ stage1list <- foreach(data=dlist, i=seq(dlist), .packages=pack) %dopar% {
   
   # DEFINE THE SPLINE OF TIME
   spltime <- ns(data$date, df=round(dftime*nrow(data)/365.25))
-  
-  # DEFINE CROSSBASIS FOR SO2
-  cbso2 <- crossbasis(data$so2, lag=lagso2, argvar=argvarso2, arglag=arglagso2)
 
   # RUN THE MODEL (RE-CREATE FORMULA TO AVOID ISSUE WITH ENVIRONMENTS)
   mod <- glm(formula(deparse(fmod)), data, family=quasipoisson)
   
-  # EXTRACT THE ESTIMATES (OVERALL CUMULATIVE)
-  crall <- crossreduce(cbso2, mod, cen=0)
+  # EXTRACT THE ESTIMATES
+  ind <- grep("so2", names(coef(mod)))
+  coefall <- coef(mod)[ind]
+  vcovall <- vcov(mod)[ind,ind]
 
   # STORE
-  list(coefall=coef(crall), vcovall=vcov(crall), conv=mod$converged,
+  list(coefall=coefall, vcovall=vcovall, conv=mod$converged,
     qaic=QAIC(mod), sumso2=quantile(data$so2, 0:100/100, na.rm=T))
 }
 names(stage1list) <- cities$city
@@ -59,8 +58,3 @@ names(stage1list) <- cities$city
 # REMOVE PARALLELIZATION
 stopCluster(cl)
 #file.remove("temp/logstage1.txt")
-
-################################################################################
-
-# SAVE THE WORKSPACE
-#save.image("temp/temp.RData")

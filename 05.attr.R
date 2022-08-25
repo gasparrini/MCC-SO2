@@ -16,117 +16,102 @@ writeLines(c(""), "temp/logattr.txt")
 cat(as.character(as.POSIXct(Sys.time())),file="temp/logattr.txt",append=T)
 
 # RUN THE LOOP
-attrlist <- foreach(data=dlist, i=seq(dlist), .packages=pack) %dopar% {
+ansim <- foreach(data=dlist, i=seq(dlist), nm=names(dlist), .packages=pack,
+  .combine=rbind) %dopar% {
   
   # STORE ITERATION (1 EVERY 100)
   if(i%%50==0) cat("\n", "iter=",i, as.character(Sys.time()), "\n",
     file="temp/logattr.txt", append=T)
 
-  # EXTRACT THE DATA
-  data <- dlist[[i]]
-  
-  # DEFINE ONEBASIS FOR SO2
-  oneso2 <- do.call(onebasis, c(list(x=data$so2), argvarso2))
+  # DEFINE ONEBASIS FOR SO2 (TOTAL AND CUT TO 40)
+  oneso2_1 <- onebasis(data$so2, "lin")
+  oneso2_2 <- onebasis(pmin(data$so2,40), "lin")
   
   # FORWARD MOVING AVERAGE OF DEATHS
   y <- if(indnonext[i]) as.integer(data$nonext) else data[[out]]
-  y <- rowMeans(as.matrix(Lag(y, -lagso2:0)))
+  y <- rowMeans(as.matrix(Lag(y, -lagtmean:0)))
   
-  # INDICATOR FOR SO2 ABOVE 40
-  ind40 <- data$so2>=40
-
+  # YEAR
+  period <- cut(year(data$date), seq(1980,2020,by=10), right=F,
+    labels=paste0(seq(1980,2010,by=10),"-",seq(1980,2010,by=10)+9))
+  
   # COMPUTE THE EXCESS DEATHS USING THE COUNTRY-SPECIFIC BLUPS
-  anday <- (1-exp(-oneso2%*%blupcountry[i, "blup"]))*y
-  an <- c(sum(anday, na.rm=T), sum(anday[ind40], na.rm=T))
+  anday1 <- (1-exp(-oneso2_1%*%blupcountry[i, "blup"]))*y
+  anday2 <- (1-exp(-oneso2_2%*%blupcountry[i, "blup"]))*y
+  an <- rbind(tot=tapply(anday1, period, sum, na.rm=T),
+    below40=tapply(anday2, period, sum, na.rm=T))
   
   # SAMPLE THE COEF OF THE META-REGRESSION
   set.seed(13041975+i)
   coefsim <- mvrnorm(nsim, blupcountry[i, "blup"], (blupcountry[i, "se"])^2)
   
   # SIMULATED DISTRIBUTION OF EXCESS DEATHS
-  ansim <- sapply(coefsim, function(b) {
-    anday <- (1-exp(-oneso2%*%b))*y
-    c(sum(anday, na.rm=T), sum(anday[ind40], na.rm=T))
+  ansim <- lapply(coefsim, function(b) {
+    anday1 <- (1-exp(-oneso2_1%*%b))*y
+    anday2 <- (1-exp(-oneso2_2%*%b))*y
+    rbind(tot=tapply(anday1, period, sum, na.rm=T),
+      below40=tapply(anday2, period, sum, na.rm=T))
   })
-  ansim <- cbind(an, ansim)
-  dimnames(ansim) <- list(c("tot","above40"), c("est", paste0("sim", seq(nsim))))
+  
+  # BIND TOGETHER
+  ansim <- abind(c(list(an), ansim), along=3)
+  dimnames(ansim)[[3]] <- c("est", paste0("sim", seq(nsim)))
 
-  # TOTAL DEATHS AND DAYS (ACCOUNTING FOR MISSING)
-  ndeath <- sum(y[!is.na(anday)])
-  nday <- sum(!is.na(anday))
+  # ADD WHOLE PERIOD
+  ansim <- abind(ansim, apply(ansim, c(1,3), sum, na.rm=T), along=2)
+  dimnames(ansim)[[2]][length(levels(period))+1] <- "full"
+  
+  # CREATE DATASET
+  andata <- as.data.table(ansim)
+  names(andata) <- c("range", "period", "sim", "an")
+  andata$city <- nm
+
+  # ADD TOTAL DEATHS AND DAYS (ACCOUNTING FOR MISSING)
+  ndata <- data.frame(period=levels(period),
+    ndeath=tapply(y*!is.na(anday1), period, sum, na.rm=T),
+    nday=tapply(!is.na(anday1), period, sum, na.rm=T))
+  ndata <- rbind(ndata,
+    cbind(data.frame(period="full"), t(colSums(ndata[,-1], na.rm=T))))
+  andata <- merge(andata, ndata, sort=F, by="period")
   
   # RETURN
-  list(ansim=ansim, ndeath=ndeath, nday=nday)
+  andata[,c(5,1:4,6:7)]
 }
-names(attrlist) <- cities$city
 
 # REMOVE PARALLELIZATION
 stopCluster(cl)
 #file.remove("temp/logattr.txt")
 
 ################################################################################
-# BY CITY
-
-# EXTRACT ansim, BIND, AND PERMUTE ITS DIMENSIONS
-ansim <- aperm(abind(lapply(attrlist, "[[", "ansim"), along=3), c(3,1,2))
-
-# EXTRACT AN FROM ANSIM AND TRANSFORM BOTH IN DATA.TABLES
-ansim <- as.data.table(ansim)
-names(ansim) <- c("city", "range", "sim", "excdeath")
-ancity <- ansim[sim=="est", c(1:2,4)]
-ansim <- ansim[sim!="est",]
-
-# COMPUTE AN AND eCI
-ancity <- merge(ancity, ansim[, list("excdeath_low"=quantile(excdeath, 0.025),
-  "excdeath_high"=quantile(excdeath, 0.975)), by=city:range],
-  by=c("city", "range"))
-
-# ADD TOTAL DEATHS AND DAYS (USE MERGE TO AVOID ISSUES WITH ORDERING)
-ndeath <- sapply(attrlist, "[[", "ndeath")
-nday <- sapply(attrlist, "[[", "nday")
-ancity <- merge(ancity, data.frame(city=cities$city, ndeath=ndeath, nday=nday),
-  by="city")
-
-# REORDER
-ancity <- ancity[cities$city,c(1:2,6:7,3:5)]
-
-################################################################################
-# BY COUNTRY
+# RESULTS
 
 # AGGREGATE BY COUNTRY
-ancountry <- merge(ancity[,1:5], cities[c("city","countryname")], by="city")
-ancountry <- ancountry[, list(ndeath=sum(ndeath), nday=sum(nday), 
-  ncity=length(unique(city)), excdeath=sum(excdeath)), 
-  by=c("countryname", "range")]
-temp <- merge(ansim, cities[c("city","countryname")], by="city")
-temp <- temp[, list(excdeath=sum(excdeath)), by=c("countryname", "range", "sim")]
+ancountry <- merge(ansim, cities[c("city","countryname")], by="city")
+ancountry <- ancountry[, list(an=sum(an), ndeath=sum(ndeath), nday=sum(nday)),
+  by=c("countryname","range","period","sim")]
+
+# ADD TOTAL ACROSS MCC
+antot <- ancountry[, list(an=sum(an), ndeath=sum(ndeath), nday=sum(nday)),
+  by=range:sim]
 
 # COMPUTE eCI
-ancountry <- merge(ancountry, temp[, list("excdeath_low"=quantile(excdeath, 0.025),
-  "excdeath_high"=quantile(excdeath, 0.975)), by=countryname:range],
-  by=c("countryname", "range"))
-rm(temp)
+ancountry <- merge(ancountry[sim=="est"],
+  ancountry[sim!="est", list(an_low=quantile(an,0.025,na.rm=T),
+    an_high=quantile(an,0.975,na.rm=T)), by=c("countryname","range","period")])
+antot <- merge(antot[sim=="est"],
+  antot[sim!="est", list(an_low=quantile(an,0.025,na.rm=T),
+    an_high=quantile(an,0.975,na.rm=T)), by=c("range","period")])
 
-# REORDER
-ancountry <- ancountry[unique(cities$countryname),]
-
-################################################################################
-# OVERALL
-
-# AGGREGATE ALL
-anall <- ancity[, list(ndeath=sum(ndeath), nday=sum(nday),
-  ncity=length(unique(city)), excdeath=sum(excdeath)), by=c("range")]
-temp <- ansim[, list(excdeath=sum(excdeath)), by=c("range", "sim")]
-
-# COMPUTE eCI
-anall <- merge(anall, temp[, list("excdeath_low"=quantile(excdeath, 0.025),
-  "excdeath_high"=quantile(excdeath, 0.975)), by=range], by=c("range"))
+# CLEAN AND ORDER
+ancountry$sim <- antot$sim <- NULL
+ancountry[, countryname:=factor(countryname, levels=unique(cities$countryname))]
+setkey(ancountry, countryname, range, period)
 
 ################################################################################
 # SAVE
 
 # CLEAN
-#rm(ansim)
+rm(ansim)
 
 # SAVE THE WORKSPACE
-#save.image("temp/temp.RData")
+#save.image("temp/attr.RData")

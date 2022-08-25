@@ -6,11 +6,6 @@
 # DEFINE THE MAIN PARAMETERS FOR THE ANALYSIS
 ################################################################################
 
-# PARAMETERS OF FUNCTION FOR SO2
-argvarso2 <- list(fun="lin")
-arglagso2 <- list(fun="strata")
-lagso2 <- 3
-
 # PARAMETERS OF FUNCTION FOR TEMPERATURE
 arglagtmean <- list(fun="strata", breaks=1)
 lagtmean <- 3
@@ -25,7 +20,7 @@ indnonext <- sapply(dlist,function(x) !"all"%in%names(x))
 out <- "all"
 
 # DEFINE THE FIRST-STAGE MODEL FORMULA
-fmod <- y ~ cbso2 + cbtmean + dow + spltime
+fmod <- y ~ runMean(so2,0:3) + cbtmean + dow + spltime
 
 # FUNCTION FOR COMPUTING THE Q-AIC
 QAIC <- function(model) {
@@ -39,4 +34,4 @@ qn <- qnorm(0.975)
 
 # PARALLELIZATION
 ncores <- detectCores()
-pack <- c("dlnm", "data.table", "gnm", "tsModel", "splines", "MASS")
+pack <- c("dlnm", "data.table", "gnm", "tsModel", "splines", "MASS", "abind")

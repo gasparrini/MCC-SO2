@@ -25,6 +25,9 @@ dlist <- dlist[sub]
 dlist <- lapply(dlist, function(x)
   x[min(which(!is.na(x$so2))):max(which(!is.na(x$so2))),])
 
+# REMOVE PRE-1980
+dlist <-  lapply(dlist, function(x) subset(x, year(date)>=1980))
+
 # CHECK NUMBER OF SO2-DAYS FOR EACH COUNTRY
 cities$n <- sapply(dlist, function(x) length(na.omit(x$so2)))
 unique(cities$country)
@@ -89,11 +92,10 @@ dlist <- dlist[cities$city]
 # CHANGE NAME OF PUERTO RICO
 cities$countryname[cities$countryname=="Puertorico"] <- "Puerto Rico"
 
+# RENAME CITIES
+rownames(cities) <- NULL
+
 ################################################################################
 # REMOVE OBJECTS AND SAVE
 
 rm(list=setdiff(ls(), c("dlist","cities")))
-
-# SAVE THE WORKSPACE
-#save.image("temp/temp.RData")
-
