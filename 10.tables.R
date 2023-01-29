@@ -14,7 +14,37 @@ funformat <- function(est, lci=NULL, hci=NULL, digits=0) {
 }
 
 ################################################################################
-# DESCRIPTIVE STATS
+# BASIC DESCRIPTIVE STATS BY CITY
+
+# EXTRACT STATS
+tabcitydescr <- data.frame(country = cities$countryname,
+  city = cities$cityname,
+  minperiod = sapply(dlist, function(x) min(year(x$date))),
+  maxperiod = sapply(dlist, function(x) max(year(x$date))),
+  meanso2 = sapply(dlist, function(x) mean(x$so2,na.rm=T)),
+  per05so2 = sapply(dlist, function(x) quantile(x$so2,0.05,na.rm=T)),
+  per95so2 = sapply(dlist, function(x) quantile(x$so2,0.95,na.rm=T)),
+  ndaywho = sapply(dlist, function(x) 
+    sum(na.omit(x$so2>40))/length(na.omit(x$so2))*100)
+)
+
+# FORMAT
+tabcitydescr <- cbind(tabcitydescr[1:2], 
+  period = paste(tabcitydescr$minperiod, tabcitydescr$maxperiod, sep="-"),
+  so2 = paste0(
+    formatC(tabcitydescr$meanso2, format="f", big.mark=",", digits=1), " (",
+    formatC(tabcitydescr$per05so2, format="f", big.mark=",", digits=1), "-",
+    formatC(tabcitydescr$per95so2, format="f", big.mark=",", digits=1), ")"
+  ),
+  ndaywho = paste0(formatC(tabcitydescr$ndaywho, format="f",
+    big.mark=",", digits=1), "%")
+)
+
+# SAVE
+write.csv(tabcitydescr, row.names=F, file="tables/tabcitydescr.csv")
+
+################################################################################
+# DESCRIPTIVE STATS BY COUNTRY
 
 # COUNTRY FACTOR
 fcntry <- factor(cities$countryname, levels=unique(cities$countryname))

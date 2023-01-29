@@ -25,14 +25,14 @@ percut <- seq(0,100,length=10)
 cutso2 <- quantile(meanso2, percut/100)
 
 # MAP
-lab <- expression(paste("Average ",SO[2]," concentration (",mu,"gr/",m^3,")"))
+lab <- expression(paste("Average ",SO[2]," concentration (",mu,"g/",m^3,")"))
 cbind(cities, meanso2) |>
     st_as_sf(coords=c("long", "lat"), crs=4326) |>
   ggplot() +
   geom_sf(data=wld, fill=grey(0.88), colour = "white", size = .2) +
   geom_sf(aes(fill=cut(meanso2, cutso2, inc=T)), size=3, stroke=.3,
     shape=21, alpha=.7, colour=alpha("white", .5)) +
-  geom_sf(data=grid, size=.1, linetype="dashed", colour="grey50", alpha=0.4) +
+  geom_sf(data=grid, size=.05, linetype=3, colour="grey50", alpha=0.4) +
   scale_fill_brewer(palette="Blues", name=lab, labels=round) +
   guides(fill=guide_colorsteps(barwidth=18, barheight=0.45, title.position="top",
     title.hjust=0.5)) + 
@@ -50,7 +50,7 @@ so2meanyear <- lapply(dlist, function(x) {
 }) |> Reduce(rbind, x=_)
 
 # LAB
-lab <- expression(paste("Average ",SO[2]," concentration (",mu,"gr/",m^3,")"))
+lab <- expression(paste("Average ",SO[2]," concentration (",mu,"g/",m^3,")"))
 
 # PLOT (TRICK TO DRAW GRID)
 par(mar=c(3,3,0.5,0.5))
@@ -88,7 +88,7 @@ yseq <- c(rev(seq(yn-1)+1.5), 1)
 xrange <- exp(range(c(effcountry[,c(1,3,4)]*10)))
 
 # LAB
-rrlab <- expression(paste("RR for 10 ",mu,"gr/",m^3," increase in ",SO[2]))
+rrlab <- expression(paste("RR for 10 ",mu,"g/",m^3," increase in ",SO[2]))
 
 # PLOT
 par(mar=c(3,6.2,0.5,0.5))
@@ -159,38 +159,37 @@ rrperiod <- exp(predict(permeta, newdata=list(midyear=1980:2018), ci=T)*10) |>
 par(mgp=c(1.8, 0.3, 0))
 
 # PLOT
-layout(1:3, heights=c(1,0.7, 0.7))
+layout(1:3, heights=c(0.9,0.7, 0.7))
 par(mar=c(3.5,3.5,0.5,0.5))
 
 lab <- expression(paste(SO[2]," (",mu,"g/",m^3,")"))
-plot(nlcp, ylim=c(0.965, 1.08), ylab="RR", xlab=lab, col=muted("lightskyblue"), 
-  ci.arg=list(col=alpha("lightskyblue", 0.2)), bty="o")
+plot(nlcp, type="n", ci="n", ylim=c(0.97, 1.08), ylab="RR", xlab=lab, bty="o")
 grid()
-# points(linknots, nlcp$allRRfit[nlcp$predvar %in% linknots], pch=19,
-#   col=muted("lightskyblue"))
+lines(nlcp, col=muted("lightskyblue"), ci="area", ci.arg=list(col=alpha("lightskyblue", 0.2)))
 lines(0:200, exp(coef(meta)*0:200), lty=2, col=grey(0.5))
 legend("topleft", c("Linear", "Non-linear"), lty=2:1, bty="n", cex=1,
   inset=0.05, col=c(grey(0.5), muted("lightskyblue")))
-rect(xseq-0.5, 0.973, xseq+0.5, 0.977, col=seqcol[fprop], border=NA)
-rect(0, 0.973, 100, 0.977)
-legend(50, 0.968, paste0(0:5*20, "%"), pch=22, pt.bg=seqcol[0:5*20+1], horiz=T,
-  bty="n", xjust=0.5, yjust=0.5, pt.cex=1.7, cex=0.9, x.intersp=1.5, text.width=10)
-text(50, 0.982, "% of contributing locations", cex=1)
+rect(xseq-0.5, 0.978, xseq+0.5, 0.982, col=seqcol[fprop], border=NA)
+rect(0, 0.978, 200, 0.982)
+legend(100, 0.973, paste0(0:5*20, "%"), pch=22, pt.bg=seqcol[0:5*20+1], horiz=T,
+  bty="n", xjust=0.5, yjust=0.5, pt.cex=1.7, cex=0.9, x.intersp=1.5, text.width=20)
+text(100, 0.987, "% of contributing locations", cex=1)
 
 par(mar=c(3.5,3.5,0,0.5))
 
-plot(clcp, ylab=rrlab, xlab="Lag (days)", col=muted("lightskyblue"), bty="o",
-  ci.arg=list(col=alpha("lightskyblue", 0.2))) 
+plot(clcp, type="n", ci="n", ylab=rrlab, xlab="Lag (days)", bty="o",) 
 grid()
+lines(clcp, ci="area", col=muted("lightskyblue"), 
+  ci.arg=list(col=alpha("lightskyblue", 0.2))) 
 
 plot(fit~year, rrperiod, type="n", ylim=c(0.998, 1.010), xlim=c(1980,2020),
   ylab=rrlab, xlab="Year")
+grid()
 polygon(x=c(rrperiod$year,rev(rrperiod$year)),
   y=c(rrperiod$ci.lb,rev(rrperiod$ci.ub)), border=NA,
   col=alpha("lightskyblue", 0.2))
 lines(fit~year, rrperiod, col=muted("lightskyblue"))
 abline(h=1)
-grid()
 
 par(mar=c(5,4,4,2)+0.1)
 layout(1)
@@ -223,6 +222,7 @@ cpmod <- lapply(seq(levels(fcntry)), function(i) {
       low=cp2$allRRlow, high=cp2$allRRhigh)
   )
 }) |> Reduce(rbind, x=_)
+cpmod$country <- factor(cpmod$country, levels=levels(fcntry))
 
 # LABEL
 lab <- expression(paste(SO[2]," (",mu,"g/",m^3,")"))
@@ -230,9 +230,10 @@ lab <- expression(paste(SO[2]," (",mu,"g/",m^3,")"))
 # PLOT
 ggplot(cpmod, aes(x=x)) +
   geom_hline(yintercept=1) +
-  geom_line(aes(y=rr, col=mod), size=0.7) +
+  geom_line(aes(y=rr, col=mod, linetype=mod), size=0.7) +
   geom_ribbon(aes(ymin=low, ymax=high, fill=mod), alpha=0.3, show.legend=F) +
   scale_colour_manual(name="Model", values=c("red", "blue")) +
+  scale_linetype(name="Model") +
   labs(y="Relative risk (RR)", x=lab) +
   coord_cartesian(ylim=c(0.95, 1.2)) +
   theme_bw() +
