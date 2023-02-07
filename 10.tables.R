@@ -1,8 +1,4 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
-################################################################################
-
-################################################################################
 # TABLES
 ################################################################################
 
@@ -17,8 +13,8 @@ funformat <- function(est, lci=NULL, hci=NULL, digits=0) {
 # BASIC DESCRIPTIVE STATS BY CITY
 
 # EXTRACT STATS
-tabcitydescr <- data.frame(country = cities$countryname,
-  city = cities$cityname,
+tabcitydescr <- data.frame(country = cities$country,
+  city = cities$city,
   minperiod = sapply(dlist, function(x) min(year(x$date))),
   maxperiod = sapply(dlist, function(x) max(year(x$date))),
   meanso2 = sapply(dlist, function(x) mean(x$so2,na.rm=T)),
@@ -47,15 +43,15 @@ write.csv(tabcitydescr, row.names=F, file="tables/tabcitydescr.csv")
 # DESCRIPTIVE STATS BY COUNTRY
 
 # COUNTRY FACTOR
-fcntry <- factor(cities$countryname, levels=unique(cities$countryname))
+fcntry <- factor(cities$country, levels=unique(cities$country))
 
 # EXTRACT STATS
 tabcntrydescr <- data.frame(country = levels(fcntry),
   ncity = tapply(cities$city, fcntry, function(x) length(unique(x))),
   minperiod = tapply(sapply(dlist, function(x) min(year(x$date))), fcntry, min),
   maxperiod = tapply(sapply(dlist, function(x) max(year(x$date))), fcntry, max),
-  nday = unique(ancountry[period=="full",c("countryname","nday")])$nday,
-  ndeath = unique(ancountry[period=="full",c("countryname","ndeath")])$ndeath,
+  nday = unique(ancountry[period=="full",c("country","nday")])$nday,
+  ndeath = unique(ancountry[period=="full",c("country","ndeath")])$ndeath,
   meanso2 = tapply(sapply(dlist, function(x) mean(x$so2,na.rm=T)), fcntry, mean),
   per05so2 = tapply(sapply(dlist, function(x) quantile(x$so2,0.05,na.rm=T)), fcntry, mean),
   per95so2 = tapply(sapply(dlist, function(x) quantile(x$so2,0.95,na.rm=T)), fcntry, mean),
@@ -135,7 +131,7 @@ write.csv(cbind(so2meanper,so2aboveper), row.names=T,
 # EXTRACT, ADD ALL MCC
 tabcntaf <- ancountry
 tabcntaftot <- antot
-tabcntaftot$countryname <- "MCC"
+tabcntaftot$country <- "MCC"
 tabcntaf <- rbind(tabcntaf, tabcntaftot)
 rm(tabcntaftot)
 
@@ -145,7 +141,7 @@ tabcntaf[, paste0("af",1:3):=lapply(.SD, function(x) x/ndeath*100),
 tabcntaf$af <- funformat(tabcntaf$af1, tabcntaf$af2, tabcntaf$af3, digits=2)
 
 # RESHAPE, FILL THE MISSING VALUES, REORDER
-tabcntaf <- dcast(tabcntaf, countryname+range~period, value.var="af")
+tabcntaf <- dcast(tabcntaf, country+range~period, value.var="af")
 for(i in seq(2, ncol(tabcntaf))) 
   tabcntaf[[i]] <- ifelse(is.na(tabcntaf[[i]]), "-", tabcntaf[[i]])
 
@@ -170,14 +166,14 @@ tabcopoll <- data.frame(Pollutant=seqpoll,
 # TABLE WITH NUMBER OF CONTRIBUTING CITIES
 taballpoll <- lapply(seqpoll, function(poll) {
   cit <- as.data.table(copoll[[poll]]$cities)
-  cit <- cit[, list(length(city)), by="countryname"]
+  cit <- cit[, list(length(city)), by="country"]
   names(cit)[2] <- poll
   cit
 }) |> Reduce(function(y,z) merge(y,z,all=T), x=_)
 taballpoll[is.na(taballpoll)] <- 0
-taballpoll <- taballpoll[match(levels(fcntry), countryname),]
+taballpoll <- taballpoll[match(levels(fcntry), country),]
 taballpoll <- rbind(taballpoll,
-  cbind(data.frame(countryname="Tot"), t(apply(taballpoll[,-1], 2, sum))))
+  cbind(data.frame(country="Tot"), t(apply(taballpoll[,-1], 2, sum))))
 
 # SAVE
 write.csv(tabcopoll, row.names=F, file="tables/tabcopoll.csv")
@@ -188,7 +184,7 @@ write.csv(taballpoll, row.names=F, file="tables/taballpoll.csv")
 
 # COUNTRY-SPECIFIC ESTIMATES AND LABELS 
 effcountry <- rbind(unique(blupcountry), unique(predict(meta, se=T, ci=T)))
-labcountry <- c(unique(cities$countryname), "Pooled")
+labcountry <- c(unique(cities$country), "Pooled")
 
 # FORMAT
 tabrrcountry <- cbind(labcountry, funformat(exp(effcountry[,1]*10),

@@ -1,13 +1,9 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
-################################################################################
-
-################################################################################
 # BI-POLLUTANT MODELS
 ################################################################################
 
 # SELECT OTHER POLLUTANTS
-seqpoll <- c("pm10","pm25","o38h","no2","co")
+seqpoll <- c("pm25","o3","no2")
 
 # PERFORM THE MODELS WIHT AND WITHOUT CO-POLLUTANTS IS SUBSETS OF CITIES  
 copoll <- lapply(seqpoll, function(poll) {
@@ -21,8 +17,7 @@ copoll <- lapply(seqpoll, function(poll) {
   )
   cities <- cities[sub,]
   dlist <- dlist[sub]
-  indnonext <- indnonext[sub]
-  
+
   # RESET PARAMETERS IN THIS INTERNAL ENVIRONMENT
   # NB: ADD local=T TO SOURCE IN THE LOCAL ENVIRONMENT OF THE PARALLELISATION
   source("02.param.R", local=T)
@@ -39,7 +34,7 @@ copoll <- lapply(seqpoll, function(poll) {
   dlist <- lapply(dlist, function(x) cbind(x, poll=x[[poll]]))
   
   # RE-DEFINE THE FIRST-STAGE MODEL FORMULA
-  fmod <- y ~ runMean(so2,0:3) + cbtmean + dow + spltime + runMean(poll, 0:3)
+  fmod <- death ~ runMean(so2,0:3) + cbtmean + dow + spltime + runMean(poll, 0:3)
   
   # PERFOR FIRST AND SECOND-STAGE WITH CO-POLLUTANT
   source("03.firststage.R", local=T)
@@ -50,12 +45,9 @@ copoll <- lapply(seqpoll, function(poll) {
   sewith <- as.numeric(sqrt(vcov(meta))*10)
   
   # RETURN
-  list(cities=cities[,1:4], coefwithout=coefwithout, sewithout=sewithout,
+  list(cities=cities[,1:2], coefwithout=coefwithout, sewithout=sewithout,
     coefwith=coefwith, sewith=sewith)
 })
 
 # NAMES
 names(copoll) <- seqpoll
-
-# SAVE THE WORKSPACE
-#save.image("temp/bipollutant.RData")

@@ -1,8 +1,4 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
-################################################################################
-
-################################################################################
 # FIRST-STAGE ANALYSIS: RUN THE MODEL IN EACH CITY, REDUCE AND SAVE
 ################################################################################
 
@@ -21,16 +17,13 @@ cat(as.character(as.POSIXct(Sys.time())),file="temp/logstage1.txt",append=T)
 # LOOP ACROSS CITIES
 stage1list <- foreach(data=dlist, i=seq(dlist), .packages=pack) %dopar% {
   
-  # STORE ITERATION (1 EVERY 50)
-  if(i%%50==0) cat("\n", "iter=",i, as.character(Sys.time()), "\n",
+  # STORE ITERATION (1 EVERY 10)
+  if(i%%10==0) cat("\n", "iter=",i, as.character(Sys.time()), "\n",
     file="temp/logstage1.txt", append=T)
 
   # SUBSET WITH EXCLUDED INITIAL AND/OR FINAL MISSING PERIODS
   subrange <- range(seq(nrow(data))[!is.na(data$so2)&!is.na(data$tmean)])
   data <- data[subrange[1]:subrange[2],]
-  
-  # DEFINE THE OUTCOME
-  data$y <- if(indnonext[i]) as.integer(data$nonext) else data[[out]]
   
   # DEFINE CROSSBASIS FOR TEMPERATURE
   knotstmean <- quantile(data$tmean, c(10,75,90)/100, na.rm=T)
@@ -38,8 +31,9 @@ stage1list <- foreach(data=dlist, i=seq(dlist), .packages=pack) %dopar% {
   cbtmean <- crossbasis(data$tmean, lag=lagtmean, argvar=argvartmean,
     arglag=arglagtmean)
   
-  # DEFINE THE SPLINE OF TIME
+  # DEFINE THE SPLINE OF TIME AND THE DAY OF THE WEEK INDICATORS
   spltime <- ns(data$date, df=round(dftime*nrow(data)/365.25))
+  data$dow <- weekdays(data$date)
 
   # RUN THE MODEL (RE-CREATE FORMULA TO AVOID ISSUE WITH ENVIRONMENTS)
   mod <- glm(formula(deparse(fmod)), data, family=quasipoisson)

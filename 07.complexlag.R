@@ -1,8 +1,4 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
-################################################################################
-
-################################################################################
 # MORE COMPLEX LAG
 ################################################################################
 
@@ -18,19 +14,19 @@ clstage1list <- foreach(data=dlist, i=seq(dlist), .packages=pack) %dopar% {
   # REPEAT STEPS OF FIRST-STAGE
   subrange <- range(seq(nrow(data))[!is.na(data$so2)&!is.na(data$tmean)])
   data <- data[subrange[1]:subrange[2],]
-  data$y <- if(indnonext[i]) as.integer(data$nonext) else data[[out]]
   knotstmean <- quantile(data$tmean, c(10,75,90)/100, na.rm=T)
   argvartmean <- list(fun="bs", knots=knotstmean, degree=2)
   cbtmean <- crossbasis(data$tmean, lag=lagtmean, argvar=argvartmean,
     arglag=arglagtmean)
   spltime <- ns(data$date, df=round(dftime*nrow(data)/365.25))
-  
+  data$dow <- weekdays(data$date)
+
   # DEFINE CROSSBASIS FOR SO2 (MODIFIED) 
   cbso2 <- crossbasis(data$so2, lag=cllagso2, argvar=list("lin"),
     arglag=clarglagso2)
 
   # RUN THE MODEL
-  mod <- glm(y ~ cbso2 + cbtmean + dow + spltime, data, family=quasipoisson)
+  mod <- glm(death ~ cbso2 + cbtmean + dow + spltime, data, family=quasipoisson)
 
   # EXTRACT THE ESTIMATES (OVERALL CUMULATIVE AND LAG-RESPONSE FOR 10-UNIT)
   crlag <- crossreduce(cbso2, mod, type="var", value=10, cen=0)
@@ -49,4 +45,4 @@ clvcovlag <- lapply(clstage1list, "[[", "vcovlag")
 # NB: REDUCE (R)IGLS ITERATIONS TO SPEED UP
 clmeta <- mixmeta(clcoeflag, clvcovlag, random=~1|country/city, data=cities, 
   control=list(showiter=T, igls.inititer=10))
-#summary(meta)
+#summary(clmeta)

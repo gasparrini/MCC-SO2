@@ -1,8 +1,4 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
-################################################################################
-
-################################################################################
 # EXCESS MORTALITY
 ################################################################################
 
@@ -19,8 +15,8 @@ cat(as.character(as.POSIXct(Sys.time())),file="temp/logattr.txt",append=T)
 ansim <- foreach(data=dlist, i=seq(dlist), nm=names(dlist), .packages=pack,
   .combine=rbind) %dopar% {
   
-  # STORE ITERATION (1 EVERY 100)
-  if(i%%50==0) cat("\n", "iter=",i, as.character(Sys.time()), "\n",
+  # STORE ITERATION (1 EVERY 10)
+  if(i%%10==0) cat("\n", "iter=",i, as.character(Sys.time()), "\n",
     file="temp/logattr.txt", append=T)
 
   # DEFINE ONEBASIS FOR SO2 (TOTAL AND CUT TO 40)
@@ -28,8 +24,7 @@ ansim <- foreach(data=dlist, i=seq(dlist), nm=names(dlist), .packages=pack,
   oneso2_2 <- onebasis(pmin(data$so2,40), "lin")
   
   # FORWARD MOVING AVERAGE OF DEATHS
-  y <- if(indnonext[i]) as.integer(data$nonext) else data[[out]]
-  y <- rowMeans(as.matrix(Lag(y, -lagtmean:0)))
+  y <- rowMeans(as.matrix(Lag(data$death, -lagtmean:0)))
   
   # YEAR
   period <- cut(year(data$date), seq(1980,2020,by=10), right=F,
@@ -86,9 +81,9 @@ stopCluster(cl)
 # RESULTS
 
 # AGGREGATE BY COUNTRY
-ancountry <- merge(ansim, cities[c("city","countryname")], by="city")
+ancountry <- merge(ansim, cities[c("city","country")], by="city")
 ancountry <- ancountry[, list(an=sum(an), ndeath=sum(ndeath), nday=sum(nday)),
-  by=c("countryname","range","period","sim")]
+  by=c("country","range","period","sim")]
 
 # ADD TOTAL ACROSS MCC
 antot <- ancountry[, list(an=sum(an), ndeath=sum(ndeath), nday=sum(nday)),
@@ -97,15 +92,15 @@ antot <- ancountry[, list(an=sum(an), ndeath=sum(ndeath), nday=sum(nday)),
 # COMPUTE eCI
 ancountry <- merge(ancountry[sim=="est"],
   ancountry[sim!="est", list(an_low=quantile(an,0.025,na.rm=T),
-    an_high=quantile(an,0.975,na.rm=T)), by=c("countryname","range","period")])
+    an_high=quantile(an,0.975,na.rm=T)), by=c("country","range","period")])
 antot <- merge(antot[sim=="est"],
   antot[sim!="est", list(an_low=quantile(an,0.025,na.rm=T),
     an_high=quantile(an,0.975,na.rm=T)), by=c("range","period")])
 
 # CLEAN AND ORDER
 ancountry$sim <- antot$sim <- NULL
-ancountry[, countryname:=factor(countryname, levels=unique(cities$countryname))]
-setkey(ancountry, countryname, range, period)
+#ancountry[, countryname:=factor(country, levels=unique(cities$country))]
+setkey(ancountry, range, period)
 
 ################################################################################
 # SAVE

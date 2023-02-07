@@ -1,8 +1,4 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
-################################################################################
-
-################################################################################
 # LOAD THE PACKAGES
 ################################################################################
 
@@ -13,5 +9,4 @@ library(MASS) ; library(abind)
 library(dplyr) ; library(data.table)
 library(magrittr) ; library(scales)
 library(Epi)
-library(sf) ; library(ggplot2)
-library(rnaturalearth) ; library(rnaturalearthdata)
+library(ggplot2)

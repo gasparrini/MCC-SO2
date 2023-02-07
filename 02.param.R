@@ -1,8 +1,4 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
-################################################################################
-
-################################################################################
 # DEFINE THE MAIN PARAMETERS FOR THE ANALYSIS
 ################################################################################
 
@@ -13,14 +9,8 @@ lagtmean <- 3
 # DEGREE OF FREEDOM FOR TREND
 dftime <- 7
 
-# CREATE INDICATOR FOR ONLY NON-EXTERNAL MORTALITY
-indnonext <- sapply(dlist,function(x) !"all"%in%names(x))
-
-# DEFINE THE OUTCOME
-out <- "all"
-
 # DEFINE THE FIRST-STAGE MODEL FORMULA
-fmod <- y ~ runMean(so2,0:3) + cbtmean + dow + spltime
+fmod <- death ~ runMean(so2,0:3) + cbtmean + dow + spltime
 
 # FUNCTION FOR COMPUTING THE Q-AIC
 QAIC <- function(model) {

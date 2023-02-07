@@ -1,45 +1,10 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
-################################################################################
-
-################################################################################
 # GRAPHS
 ################################################################################
 
 # SET GRAPHICAL PARAMETERS
 oldpar <- par(no.readonly=T)
 par(las=1, mgp=c(1.5, 0.3, 0), tcl=-0.2, cex.axis=0.7, cex.lab=0.9)
-
-################################################################################
-# MAP OF SO2 AVERAGE CONCENTRATIONS
-
-# WORLD MAP, GRID, PROJECTION
-wld <- ne_countries(scale = 50, returnclass = "sf") |>
-  subset(subregion != "Antarctica")
-grid <- st_graticule() 
-prj <- "ESRI:54030"
-
-# DEFINE ANNUAL SO2 AVERAGES AND CUT-OFFS
-meanso2 <- round(sapply(dlist, function(x) mean(x$so2, na.rm=T)))
-percut <- seq(0,100,length=10)
-cutso2 <- quantile(meanso2, percut/100)
-
-# MAP
-lab <- expression(paste("Average ",SO[2]," concentration (",mu,"g/",m^3,")"))
-cbind(cities, meanso2) |>
-    st_as_sf(coords=c("long", "lat"), crs=4326) |>
-  ggplot() +
-  geom_sf(data=wld, fill=grey(0.88), colour = "white", size = .2) +
-  geom_sf(aes(fill=cut(meanso2, cutso2, inc=T)), size=3, stroke=.3,
-    shape=21, alpha=.7, colour=alpha("white", .5)) +
-  geom_sf(data=grid, size=.05, linetype=3, colour="grey50", alpha=0.4) +
-  scale_fill_brewer(palette="Blues", name=lab, labels=round) +
-  guides(fill=guide_colorsteps(barwidth=18, barheight=0.45, title.position="top",
-    title.hjust=0.5)) + 
-  coord_sf(xlim=c(-170,180), ylim=c(-55,80), crs=prj, default_crs=4326) +
-  theme_void() +   theme(legend.position="bottom")
-
-dev.print(pdf, "figures/mapso2.pdf", height=5, width=10)
 
 ################################################################################
 # SO2 DISTRIBUTION BY YEAR
@@ -108,21 +73,18 @@ par(mar=c(5,4,4,2)+0.1)
 dev.print(pdf, "figures/rrcountry.pdf", height=9, width=6.5)
 
 # GGPLOT VERSION
-as.matrix(unique(cities[c("countryname","region")])) |>
-  rbind(c("Pooled","")) |>
+as.matrix(unique(cities[c("country")])) |>
+  rbind(c("Pooled")) |>
   cbind(as.data.frame(exp(effcountry[,c(1,3,4)]*10))) |>
-  mutate(countryname=factor(countryname, levels=rev(unique(countryname))),
-    region=factor(region, levels=unique(region)),
+  mutate(country=factor(country, levels=rev(unique(country))),
     shape=rep(c(19,18),c(yn-1,1))) |>
-  ggplot(aes(blup, countryname)) +
+  ggplot(aes(blup, country)) +
   geom_vline(xintercept=1, size=.4) +
   geom_vline(xintercept=exp(effcountry[yn,1]*10), size=.4, linetype="dotted") +
   geom_errorbar(aes(xmin=pi.lb, xmax=pi.ub), colour="lightskyblue", width=0.4,
     show.legend=FALSE) +
   geom_point(size=2, aes(shape=shape), colour=muted("lightskyblue"),
     show.legend=FALSE) + scale_shape_identity() +
-  #scale_y_discrete(labels = function(x) str_remove(x, "Pooled")) +
-  facet_grid(region~., space = "free_y", scales = "free_y") +
   labs(y = "", x=rrlab) +
   theme_bw() +
   theme(strip.text.y=element_text(angle=0), panel.grid.minor=element_blank(),
@@ -163,17 +125,17 @@ layout(1:3, heights=c(0.9,0.7, 0.7))
 par(mar=c(3.5,3.5,0.5,0.5))
 
 lab <- expression(paste(SO[2]," (",mu,"g/",m^3,")"))
-plot(nlcp, type="n", ci="n", ylim=c(0.97, 1.08), ylab="RR", xlab=lab, bty="o")
+plot(nlcp, type="n", ci="n", ylim=c(0.90, 1.30), ylab="RR", xlab=lab, bty="o")
 grid()
 lines(nlcp, col=muted("lightskyblue"), ci="area", ci.arg=list(col=alpha("lightskyblue", 0.2)))
 lines(0:200, exp(coef(meta)*0:200), lty=2, col=grey(0.5))
 legend("topleft", c("Linear", "Non-linear"), lty=2:1, bty="n", cex=1,
   inset=0.05, col=c(grey(0.5), muted("lightskyblue")))
-rect(xseq-0.5, 0.978, xseq+0.5, 0.982, col=seqcol[fprop], border=NA)
-rect(0, 0.978, 200, 0.982)
-legend(100, 0.973, paste0(0:5*20, "%"), pch=22, pt.bg=seqcol[0:5*20+1], horiz=T,
+rect(xseq-0.5, 0.91, xseq+0.5, 0.925, col=seqcol[fprop], border=NA)
+rect(0, 0.91, 200, 0.925)
+legend(100, 0.95, paste0(0:5*20, "%"), pch=22, pt.bg=seqcol[0:5*20+1], horiz=T,
   bty="n", xjust=0.5, yjust=0.5, pt.cex=1.7, cex=0.9, x.intersp=1.5, text.width=20)
-text(100, 0.987, "% of contributing locations", cex=1)
+text(100, 0.98, "% of contributing locations", cex=1)
 
 par(mar=c(3.5,3.5,0,0.5))
 
@@ -182,7 +144,7 @@ grid()
 lines(clcp, ci="area", col=muted("lightskyblue"), 
   ci.arg=list(col=alpha("lightskyblue", 0.2))) 
 
-plot(fit~year, rrperiod, type="n", ylim=c(0.998, 1.010), xlim=c(1980,2020),
+plot(fit~year, rrperiod, type="n", ylim=c(0.98, 1.040), xlim=c(1980,2020),
   ylab=rrlab, xlab="Year")
 grid()
 polygon(x=c(rrperiod$year,rev(rrperiod$year)),
@@ -238,6 +200,6 @@ ggplot(cpmod, aes(x=x)) +
   coord_cartesian(ylim=c(0.95, 1.2)) +
   theme_bw() +
   theme(legend.position="top") +
-  facet_wrap(vars(country), ncol=4)
+  facet_wrap(vars(country), ncol=3)
 
-ggsave("figures/modfit.png", height=12, width=8, unit="in")
+ggsave("figures/modfit.png", height=10, width=12, unit="in")

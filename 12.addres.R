@@ -1,8 +1,4 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
-################################################################################
-
-################################################################################
 # ADDITIONAL RESULTS
 ################################################################################
 
@@ -17,8 +13,8 @@ so2aboveper[nrow(so2meanper),,drop=F]
 round(ci.exp(meta, ctr.mat=matrix(10)), 4)
 
 # EXCESS MORTALITY FRACTION
-subset(tabcntaf, range=="tot" & countryname=="MCC")
-subset(tabcntaf, range!="tot" & countryname=="MCC")
+subset(tabcntaf, range=="tot" & country=="MCC")
+subset(tabcntaf, range!="tot" & country=="MCC")
 
 # AVERAGE STUDY PERIOD
 mean(sapply(dlist, function(x) diff(range(x$date))/365.25))

@@ -1,8 +1,4 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
-################################################################################
-
-################################################################################
 # BY PERIOD
 ################################################################################
 
@@ -17,13 +13,13 @@ perstage1list <- foreach(data=dlist, i=seq(dlist), .packages=pack) %dopar% {
   # REPEAT STEPS OF FIRST-STAGE
   subrange <- range(seq(nrow(data))[!is.na(data$so2)&!is.na(data$tmean)])
   data <- data[subrange[1]:subrange[2],]
-  data$y <- if(indnonext[i]) as.integer(data$nonext) else data[[out]]
   knotstmean <- quantile(data$tmean, c(10,75,90)/100, na.rm=T)
   argvartmean <- list(fun="bs", knots=knotstmean, degree=2)
   cbtmean <- crossbasis(data$tmean, lag=lagtmean, argvar=argvartmean,
     arglag=arglagtmean)
   spltime <- ns(data$date, df=round(dftime*nrow(data)/365.25))
-  
+  data$dow <- weekdays(data$date)
+
   # DEFINE THE PERIODS
   nstep <- max(round(nrow(data)/(ystep*365.25)), 1)
   step <- nrow(data)/nstep
@@ -33,8 +29,8 @@ perstage1list <- foreach(data=dlist, i=seq(dlist), .packages=pack) %dopar% {
     (yday(data$date[1]) + step*(1:nstep) - step/2)/365.25
 
   # RUN THE MODEL (FORMULA DEPENDENT ON PRESENCE OF MULTIPLE PERIODS)
-  fmodalt <- if(nstep==1) y ~ runMean(so2,0:3) + cbtmean + dow + spltime else 
-    y ~ runMean(so2,0:3):period + cbtmean + dow + spltime
+  fmodalt <- if(nstep==1) death ~ runMean(so2,0:3) + cbtmean + dow + spltime else 
+    death ~ runMean(so2,0:3):period + cbtmean + dow + spltime
   mod <- glm(fmodalt, data, family=quasipoisson)
   
   # IDENTIFY PERIODS REMOVED FROM ESTIMATION
@@ -69,6 +65,5 @@ dataper <- data.frame(coef=coefall, vcov=vcovall, midyear=midyear,
 # PERFORM THE META-ANALYSIS
 # NB: EXCLUDE TEHRAN TO AVOID CONVERGENCE ISSUES
 permeta <- mixmeta(coef~I(midyear-2000), vcov, random=~1|country/city, 
-  data=subset(dataper, country!="irn0215"), 
-  control=list(showiter=T, igls.inititer=10))
-#summary(meta)
+  data=dataper, control=list(showiter=T, igls.inititer=10))
+#summary(permeta)
