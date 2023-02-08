@@ -63,7 +63,6 @@ dataper <- data.frame(coef=coefall, vcov=vcovall, midyear=midyear,
 )
 
 # PERFORM THE META-ANALYSIS
-# NB: EXCLUDE TEHRAN TO AVOID CONVERGENCE ISSUES
 permeta <- mixmeta(coef~I(midyear-2000), vcov, random=~1|country/city, 
   data=dataper, control=list(showiter=T, igls.inititer=10))
 #summary(permeta)
