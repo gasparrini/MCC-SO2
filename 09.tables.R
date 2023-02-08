@@ -150,36 +150,6 @@ write.csv(tabcntaf[range=="tot", -2], row.names=F, file="tables/tabcntaftot.csv"
 write.csv(tabcntaf[range!="tot", -2], row.names=F, file="tables/tabcntafbelow40.csv")
 
 ################################################################################
-# TABLE OF SENSITIVITY ANALYSIS WITH CO-POLLUTANTS
-
-# EXTRACT ESTIMATES
-copollest <- t(sapply(copoll, function(x) as.numeric(x[-1])))
-
-# TABLE WITH ESTIMATES
-tabcopoll <- data.frame(Pollutant=seqpoll,
-  N=sapply(copoll, function(x) nrow(x$cities)),
-  without=funformat(exp(copollest[,1]), exp(copollest[,1]-qn*copollest[,2]),
-    exp(copollest[,1]+qn*copollest[,2]), digits=4),
-  with=funformat(exp(copollest[,3]), exp(copollest[,3]-qn*copollest[,4]),
-    exp(copollest[,3]+qn*copollest[,4]), digits=4))
-
-# TABLE WITH NUMBER OF CONTRIBUTING CITIES
-taballpoll <- lapply(seqpoll, function(poll) {
-  cit <- as.data.table(copoll[[poll]]$cities)
-  cit <- cit[, list(length(city)), by="country"]
-  names(cit)[2] <- poll
-  cit
-}) |> Reduce(function(y,z) merge(y,z,all=T), x=_)
-taballpoll[is.na(taballpoll)] <- 0
-taballpoll <- taballpoll[match(levels(fcntry), country),]
-taballpoll <- rbind(taballpoll,
-  cbind(data.frame(country="Tot"), t(apply(taballpoll[,-1], 2, sum))))
-
-# SAVE
-write.csv(tabcopoll, row.names=F, file="tables/tabcopoll.csv")
-write.csv(taballpoll, row.names=F, file="tables/taballpoll.csv")
-
-################################################################################
 # RR BY COUNTRY AND OVERALL
 
 # COUNTRY-SPECIFIC ESTIMATES AND LABELS 
