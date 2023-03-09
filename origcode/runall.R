@@ -1,5 +1,14 @@
 ################################################################################
-# MCC-POLLUTION PROJECT: SO2 ANALYSIS 
+# Original R code for the analysis in:
+#
+#  O'Brien E, et al. Short-Term association between sulfur dioxide and 
+#    mortality: a multicountry analysis in 399 cities. Environmental Health
+#    Perspectives. 2023;131(3):37002.
+#  https://doi.org/10.1289/ehp11112
+#
+# * an updated version of this code, compatible with future versions of the
+#   software, is available at:
+#   https://github.com/gasparrini/MCC-SO2
 ################################################################################
 
 # SOURCE ALL THE SCRIPTS
