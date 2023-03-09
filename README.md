@@ -18,4 +18,4 @@ The simulated data are included in a single file simdata.csv stored in the folde
 
 ### R code
 
-The R code for replicating the analysis with the simulated data is separated in a series of scripts to be run sequentially. The code includes only minor revisions compared with the original version, mostly due to adapting it to the different data structure. The original code, which cannot be run without the original data, is also provided for completeness in the folder *origcode*.
+The R code for replicating the analysis with the simulated data is provided in the folder *Rcode*. The code is separated in a series of scripts to be run sequentially. The code includes only minor revisions compared with the original version, mostly due to adapting it to the different data structure. The original code, which cannot be run without the original data, is also provided for completeness in the sub-folder *origcode*.
