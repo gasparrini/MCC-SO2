@@ -71,7 +71,7 @@ dataper <- data.frame(coef=coefall, vcov=vcovall, midyear=midyear,
   city=rep(cities$city, nper), country=rep(cities$country, nper)
 )
 
-# PERFORM THE META-ANALYSIS
+# PERFORM THE META-ANALYSIS (USE RIGLS ESTIMATOR TO AVOID CONVERGENCE ISSUES)
 permeta <- mixmeta(coef~I(midyear-2000), vcov, random=~1|country/city, 
-  data=dataper, control=list(showiter=T, igls.inititer=10))
+  data=dataper, control=list(showiter=T, loglik.iter="rigls"))
 #summary(permeta)
