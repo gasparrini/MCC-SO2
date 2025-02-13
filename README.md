@@ -6,7 +6,7 @@ An example of applications of the two-stage time series design for the analysis 
 
 This repository stores the updated R code and data to reproduce the analyis presented in the article:
 
-O'Brien E, et al. Short-Term association between sulfur dioxide and mortality: a multicountry analysis in 399 cities. Environmental Health Perspectives. 2023;131(3):37002. DOI: doi.org/10.1289/ehp11112. [[freely available here](http://www.ag-myresearch.com/2023_obrien_ehp.html)]
+O'Brien E, et al. Short-Term association between sulfur dioxide and mortality: a multicountry analysis in 399 cities. *Environmental Health Perspectives*. 2023;131(3):37002. DOI: doi.org/10.1289/ehp11112. [[freely available here](http://www.ag-myresearch.com/2023_obrien_ehp.html)]
 
 ### Data
 
